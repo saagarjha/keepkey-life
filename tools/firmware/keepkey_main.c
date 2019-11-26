@@ -38,6 +38,7 @@
 #include "keepkey/board/signatures.h"
 #include "keepkey/board/util.h"
 #include "keepkey/firmware/app_layout.h"
+#include "keepkey/firmware/life.h"
 #include "keepkey/board/confirm_sm.h"
 #include "keepkey/firmware/fsm.h"
 #include "keepkey/firmware/home_sm.h"
@@ -156,15 +157,6 @@ static void check_bootloader(void) {
 #endif
 }
 
-static void exec(void)
-{
-    usbPoll();
-
-    /* Attempt to animate should a screensaver be present */
-    animate();
-    display_refresh();
-}
-
 int main(void)
 {
     _buttonusr_isr = (void *)&buttonisr_usr;
@@ -190,37 +182,9 @@ int main(void)
     /* Bootloader Verification */
     check_bootloader();
 
-    led_func(SET_RED_LED);
-    dbg_print("Application Version %d.%d.%d\n\r", MAJOR_VERSION, MINOR_VERSION,
-              PATCH_VERSION);
-
-    /* Init storage */
-    storage_init();
-
-    /* Init protcol buffer message map and usb msg callback */
-    fsm_init();
-
-    led_func(SET_GREEN_LED);
-
-    usbInit(storage_isInitialized() ? "keepkey.com/wallet" : "keepkey.com/get-started");
-    u2fInit();
-    led_func(CLR_RED_LED);
-
     reset_idle_time();
 
-    if (is_mfg_mode())
-        layout_screen_test();
-    else if (!storage_isInitialized())
-        layout_standard_notification("Welcome", "keepkey.com/get-started",
-                                     NOTIFICATION_LOGO);
-    else
-        layoutHomeForced();
-
-    while (1) {
-        delay_ms_with_callback(ONE_SEC, &exec, 1);
-        increment_idle_time(ONE_SEC);
-        toggle_screensaver();
-    }
+    life();
 
     return 0;
 }
